@@ -8,27 +8,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
 <style>
-/* FLASHY BACKGROUND */
+/* 🔥 BACKGROUND FLASH */
 @keyframes flashyBg {
-  0%   { background: #ff004c; }
-  10%  { background: #00ffcc; }
-  20%  { background: #3300ff; }
-  30%  { background: #ff00ff; }
-  40%  { background: #00ff00; }
-  50%  { background: #ffff00; }
-  60%  { background: #ff6600; }
-  70%  { background: #00ccff; }
-  80%  { background: #cc00ff; }
-  90%  { background: #ff0066; }
-  100% { background: #ffffff; }
+  0%   { background: #ff004c;}
+  10%  { background: #00ffcc;}
+  20%  { background: #3300ff;}
+  30%  { background: #ff00ff;}
+  40%  { background: #00ff00;}
+  50%  { background: #ffff00;}
+  60%  { background: #ff6600;}
+  70%  { background: #00ccff;}
+  80%  { background: #cc00ff;}
+  90%  { background: #ff0066;}
+  100% { background: #ffffff;}
 }
 
 html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  height: 100%;
   font-family: 'Press Start 2P', cursive;
+  height: 100%;
   background: black;
   touch-action: none;
 }
@@ -39,21 +39,22 @@ body.playing {
 
 body.boss {
   animation: none;
-  background: red;
+  background: #8b0000;
 }
 
+/* HUD */
 #scoreboard, #lives {
   position: fixed;
   top: 10px;
-  left: 10px;
   font-size: 1.6rem;
   color: #fff;
   text-shadow: 0 0 8px #000;
   z-index: 1000;
 }
+#scoreboard { left: 10px; }
+#lives { right: 10px; }
 
-#lives { left: auto; right: 10px; }
-
+/* VERA */
 #vera {
   position: absolute;
   width: 100px;
@@ -63,6 +64,7 @@ body.boss {
   z-index: 10;
 }
 
+/* CATS */
 .cat {
   position: absolute;
   width: 130px;
@@ -70,20 +72,25 @@ body.boss {
   animation: fall linear forwards;
   pointer-events: none;
 }
-
 @keyframes fall {
   from { top: -150px; }
   to   { top: 110vh; }
 }
 
+/* OBSTACLES */
 .obstacle {
   position: absolute;
   width: 120px;
   height: 120px;
-  animation: fall linear forwards;
+  animation: fallOb linear forwards;
   pointer-events: none;
 }
+@keyframes fallOb {
+  from { top: -140px; }
+  to   { top: 110vh; }
+}
 
+/* BOSS */
 .bossCat {
   position: absolute;
   width: 200px;
@@ -92,27 +99,26 @@ body.boss {
   transform: translate(-50%, -50%);
   animation: bounceBoss 2s ease-in-out infinite;
 }
-
 @keyframes bounceBoss {
   0% { transform: translate(-50%, -30%) scale(1); }
-  50% { transform: translate(-50%, -20%) scale(1.2); }
+  50% { transform: translate(-50%, -25%) scale(1.2); }
   100% { transform: translate(-50%, -30%) scale(1); }
 }
 
+/* TRASH TEXT */
 .trash {
   position: absolute;
   font-size: 1.8rem;
-  font-weight: bold;
   color: white;
   text-shadow: 0 0 6px black;
   animation: floatUp 2.5s ease-out forwards;
 }
-
 @keyframes floatUp {
   0% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-120px); }
 }
 
+/* STAGE TEXT */
 #bossTitle, #endText, #tryAgainBtn {
   position: fixed;
   left: 50%;
@@ -123,8 +129,7 @@ body.boss {
   z-index: 2000;
   text-align: center;
 }
-
-#bossTitle { top: 40%; }
+#bossTitle { top: 35%; display: none; }
 #endText { top: 30%; display: none; }
 #tryAgainBtn {
   top: 60%;
@@ -149,159 +154,169 @@ body.boss {
 <div id="scoreboard">SCORE: 0</div>
 <div id="lives">LIVES: 3</div>
 
-<div id="bossTitle">VERA.EXE FINAL STAGE</div>
+<div id="bossTitle">⚠️ VERA.EXE FINAL STAGE ⚠️</div>
 <div id="endText"></div>
 <div id="tryAgainBtn">TRY AGAIN?</div>
 
 <div id="vera"></div>
 
 <script>
-// — GAME STATE
-let score = 0;
-let lives = 3;
-let isBossStage = false;
-
-// — MUSIC / SOUND
+// — SOUND / MUSIC
 const music = document.getElementById("bgMusic");
-const trumpetSound = document.getElementById("trumpetSound");
-document.addEventListener("click", () => music.play().catch(() =>{}), { once: true });
+const trumpet = document.getElementById("trumpetSound");
 
-// — UI
-const scoreboard = document.getElementById("scoreboard");
-const livesDisplay = document.getElementById("lives");
+// Start music on first click/tap
+function enableAudio() {
+  music.play().catch(()=>{});
+  document.removeEventListener("click", enableAudio);
+  document.removeEventListener("touchstart", enableAudio);
+}
+document.addEventListener("click", enableAudio);
+document.addEventListener("touchstart", enableAudio);
+
+let score = 0, lives = 3, isBoss = false;
+
+// — HUD
+const scoreEl = document.getElementById("scoreboard");
+const livesEl = document.getElementById("lives");
 const bossTitle = document.getElementById("bossTitle");
 const endText = document.getElementById("endText");
 const tryAgainBtn = document.getElementById("tryAgainBtn");
 
 // — VERA
 const vera = document.getElementById("vera");
-let veraX = window.innerWidth/2 - 50;
-let veraY = window.innerHeight/2 - 50;
+let veraX = innerWidth/2 - 50;
+let veraY = innerHeight/2 - 50;
 vera.style.left = veraX + "px";
-vera.style.top  = veraY + "px";
+vera.style.top = veraY + "px";
 
 function moveVera(x,y) {
   veraX = x - vera.offsetWidth/2;
   veraY = y - vera.offsetHeight/2;
   vera.style.left = veraX + "px";
-  vera.style.top  = veraY + "px";
+  vera.style.top = veraY + "px";
 }
 
-document.addEventListener("touchstart", e => moveVera(e.touches[0].clientX, e.touches[0].clientY));
-document.addEventListener("touchmove", e => moveVera(e.touches[0].clientX, e.touches[0].clientY));
-document.addEventListener("mousedown", e => moveVera(e.clientX, e.clientY));
-document.addEventListener("mousemove", e => { if(e.buttons>0) moveVera(e.clientX, e.clientY); });
+document.addEventListener("touchstart", e=>moveVera(e.touches[0].clientX,e.touches[0].clientY));
+document.addEventListener("touchmove", e=>moveVera(e.touches[0].clientX,e.touches[0].clientY));
+document.addEventListener("mousedown",e=>moveVera(e.clientX,e.clientY));
+document.addEventListener("mousemove",e=>{ if(e.buttons>0) moveVera(e.clientX,e.clientY); });
 
-// — CAT GIFS
-const catUrls = [
+// — FALLING CATS
+const catImgs = [
   "https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif",
   "https://media.giphy.com/media/mlvseq9yvZhba/giphy.gif",
   "https://media.giphy.com/media/13borq7Zo2kulO/giphy.gif"
 ];
-
-setInterval(() => {
-  if(isBossStage) return;
+setInterval(()=>{
+  if(isBoss) return;
   const cat = document.createElement("img");
   cat.className = "cat";
-  cat.src = catUrls[Math.floor(Math.random()*catUrls.length)];
+  cat.src = catImgs[Math.floor(Math.random()*catImgs.length)];
   cat.style.left = Math.random()*(innerWidth-130)+"px";
-  cat.style.animationDuration = (3+Math.random()*2)+"s";
+  cat.style.animationDuration=(3+Math.random()*2)+"s";
   document.body.appendChild(cat);
-  setTimeout(()=>cat.remove(), 6000);
-}, 700);
+  setTimeout(()=>cat.remove(),6000);
+},700);
 
 // — OBSTACLES
-const obstacleUrls = [
-  "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif", // banana
-  "https://media.giphy.com/media/l0HUpt2s9Pclgt9Vm/giphy.gif" // spinning thing
+const obsImgs = [
+  "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif",
+  "https://media.giphy.com/media/l0HUpt2s9Pclgt9Vm/giphy.gif"
 ];
+setInterval(()=>{
+  if(isBoss) return;
+  const o=document.createElement("img");
+  o.className="obstacle";
+  o.src=obsImgs[Math.floor(Math.random()*obsImgs.length)];
+  o.style.left=Math.random()*(innerWidth-120)+"px";
+  o.style.animationDuration=(4+Math.random()*2)+"s";
+  document.body.appendChild(o);
+  setTimeout(()=>o.remove(),6000);
+},1100);
 
-setInterval(() => {
-  if(isBossStage) return;
-  const obs = document.createElement("img");
-  obs.className = "obstacle";
-  obs.src = obstacleUrls[Math.floor(Math.random()*obstacleUrls.length)];
-  obs.style.left = Math.random()*(innerWidth-120)+"px";
-  obs.style.animationDuration = (3+Math.random()*2)+"s";
-  document.body.appendChild(obs);
-  setTimeout(()=>obs.remove(), 6000);
-}, 1100);
+// — FLOATING TEXT
+const trashWords=["LOL","WTF","XD","BRUH","OMG","NOICE"];
+setInterval(()=>{
+  const t=document.createElement("div");
+  t.className="trash";
+  t.textContent=trashWords[Math.floor(Math.random()*trashWords.length)];
+  t.style.left=Math.random()*innerWidth+"px";
+  t.style.top=Math.random()*innerHeight+"px";
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),3000);
+},900);
 
 // — COLLISIONS
-function checkCollisions() {
-  const vRect = vera.getBoundingClientRect();
+function checkColl() {
+  const vRect=vera.getBoundingClientRect();
 
-  document.querySelectorAll(".cat").forEach(cat => {
-    const cRect = cat.getBoundingClientRect();
-    if(!(cRect.right < vRect.left || cRect.left > vRect.right ||
-         cRect.bottom < vRect.top || cRect.top > vRect.bottom)) {
+  document.querySelectorAll(".cat").forEach(cat=>{
+    const c=cat.getBoundingClientRect();
+    if(!(c.right<vRect.left||c.left>vRect.right||c.bottom<vRect.top||c.top>vRect.bottom)){
       score++;
-      scoreboard.textContent="SCORE: "+score;
+      scoreEl.textContent="SCORE: "+score;
       cat.remove();
-      if(score>=15 && !isBossStage) startBossStage();
+      if(score>=15&&!isBoss) startBoss();
     }
   });
 
-  document.querySelectorAll(".obstacle").forEach(obs => {
-    const oRect = obs.getBoundingClientRect();
-    if(!(oRect.right < vRect.left || oRect.left > vRect.right ||
-         oRect.bottom < vRect.top || oRect.top > vRect.bottom)) {
+  document.querySelectorAll(".obstacle").forEach(o=>{
+    const oR=o.getBoundingClientRect();
+    if(!(oR.right<vRect.left||oR.left>vRect.right||oR.bottom<vRect.top||oR.top>vRect.bottom)){
       lives--;
-      livesDisplay.textContent="LIVES: "+lives;
-      obs.remove();
+      livesEl.textContent="LIVES: "+lives;
+      o.remove();
+      document.body.style.opacity="0.7";
+      setTimeout(()=>document.body.style.opacity="1",100);
       if(lives<=0) endGame(false);
     }
   });
 
-  if(isBossStage) {
-    const boss = document.querySelector(".bossCat");
-    if(boss) {
-      const bRect = boss.getBoundingClientRect();
-      if(!(bRect.right < vRect.left || bRect.left > vRect.right ||
-           bRect.bottom < vRect.top || bRect.top > vRect.bottom)) {
+  if(isBoss){
+    const boss=document.querySelector(".bossCat");
+    if(boss){
+      const bRect=boss.getBoundingClientRect();
+      if(!(bRect.right<vRect.left||bRect.left>vRect.right||bRect.bottom<vRect.top||bRect.top>vRect.bottom)){
         score+=10;
-        scoreboard.textContent="SCORE: "+score;
-        boss.remove(); 
+        scoreEl.textContent="SCORE: "+score;
+        boss.remove();
       }
     }
   }
 }
+setInterval(checkColl,40);
 
-setInterval(checkCollisions,50);
-
-// — BOSS STAGE
-function startBossStage() {
-  isBossStage=true;
+// — BOSS LEVEL
+function startBoss(){
+  isBoss=true;
   document.body.classList.remove("playing");
   document.body.classList.add("boss");
-  trumpetSound.play();
+  trumpet.play();
   bossTitle.style.display="block";
+  setTimeout(()=>bossTitle.style.display="none",5000);
 
   setTimeout(()=>{
-    bossTitle.style.display="none";
-    const boss=document.createElement("img");
-    boss.className="bossCat";
-    boss.src="https://media.giphy.com/media/l1J9urxD0W2xj4oGg/giphy.gif";
-    boss.style.left="50%";
-    boss.style.top="20%";
-    document.body.appendChild(boss);
+    const b=document.createElement("img");
+    b.className="bossCat";
+    b.src="https://media.giphy.com/media/l1J9urxD0W2xj4oGg/giphy.gif";
+    b.style.left="50%";
+    b.style.top="20%";
+    document.body.appendChild(b);
   },5000);
 
-  setTimeout(()=> endGame(true),30000); // 30 sec boss round
+  setTimeout(()=>endGame(true),30000);
 }
 
 // — END GAME
-function endGame(victory) {
-  isBossStage=false;
+function endGame(win){
   document.body.classList.remove("boss");
   endText.style.display="block";
   tryAgainBtn.style.display="block";
-  endText.textContent = victory ? "YOU WIN! 🎉" : "GAME OVER 💀";
+  endText.textContent=win?"YOU WIN! 🎉":"GAME OVER 💀";
 }
 
-tryAgainBtn.addEventListener("click",()=>{
-  window.location.reload();
-});
+tryAgainBtn.addEventListener("click",()=>window.location.reload());
 </script>
 
 </body>
